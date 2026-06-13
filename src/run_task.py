@@ -37,25 +37,15 @@ class ReachPolicy(Node):
     STATE_TOPIC = '/d1/joint_states'
     CMD_TOPIC   = '/d1/joint_commands'
 
+    # Names must match the IsaacLab training env joint names exactly
     JOINT_NAMES = [
-        'joint_1',
-        'joint_2',
-        'joint_3',
-        'joint_4',
-        'joint_5',
-        'joint_6',
-        'joint_7',
+        'Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6',
+        'Joint_L', 'Joint_R',
     ]
-    
-    # Mapping from joint name to simulation action index
+
     JOINT_NAME_TO_IDX = {
-        'joint_1': 0,
-        'joint_2': 1,
-        'joint_3': 2,
-        'joint_4': 3,
-        'joint_5': 4,
-        'joint_6': 5,
-        'joint_7': 6
+        'Joint1': 0, 'Joint2': 1, 'Joint3': 2, 'Joint4': 3,
+        'Joint5': 4, 'Joint6': 5, 'Joint_L': 6, 'Joint_R': 7,
     }
 
     def __init__(self, fail_quietly: bool = False, verbose: bool = False):
@@ -123,11 +113,11 @@ class ReachPolicy(Node):
         """
         # Set a constant target command for the robot (example values)
         if self.i%3000 < 1000:
-            self.target_command = np.array([0.5, 0.0, 0.2, 0.7071, 0.0, 0.7071, 0.0])
+            self.target_command = np.array([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         elif self.i%3000 < 2000 and self.i%3000 > 1000:
-            self.target_command = np.array([0.4, -0.15, 0.3, 0.7071, 0.0, 0.7071, 0.0])
+            self.target_command = np.array([0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         else:
-            self.target_command = np.array([0.6, 0.1, 0.45, 0.7071, 0.0, 0.7071, 0.0])
+            self.target_command = np.array([0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         # Get simulation joint positions from the robot's forward model
         joint_pos = self.robot.forward(self.step_size, self.target_command)

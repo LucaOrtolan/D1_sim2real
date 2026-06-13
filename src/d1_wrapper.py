@@ -10,14 +10,10 @@ class D1ReachPolicy(PolicyController):
     def __init__(self) -> None:
         """Initialize the URReachPolicy instance."""
         super().__init__()
+        # Must match joint names used in IsaacLab training env exactly
         self.dof_names = [
-            "joint_1",
-            "joint_2",
-            "joint_3",
-            "joint_4",
-            "joint_5",
-            "joint_6",
-            "joint_7",
+            "Joint1", "Joint2", "Joint3", "Joint4", "Joint5", "Joint6",
+            "Joint_L", "Joint_R",
         ]
         # Load the pre-trained policy model and environment configuration
         repo_root = Path(__file__).resolve().parents[1]
@@ -28,13 +24,13 @@ class D1ReachPolicy(PolicyController):
         )
 
         self._action_scale = 0.5
-        self._previous_action = np.zeros(7)
+        self._previous_action = np.zeros(8)
         self._policy_counter = 0
         self.target_command = np.array([0.5, 0.0, 0.2, 0.7071, 0.0, 0.7071, 0.0])
 
         self.has_joint_data = False
-        self.current_joint_positions = np.zeros(7)
-        self.current_joint_velocities = np.zeros(7)
+        self.current_joint_positions = np.zeros(8)
+        self.current_joint_velocities = np.zeros(8)
 
     def update_joint_state(self, position, velocity) -> None:
         """
@@ -60,11 +56,16 @@ class D1ReachPolicy(PolicyController):
         """
         if not self.has_joint_data:
             return None
-        obs = np.zeros(28)
-        obs[:7] = self.current_joint_positions - self.default_pos
-        obs[7:14] = self.current_joint_velocities
-        obs[14:21] = command
-        obs[21:28] = self._previous_action
+        # obs layout must match training env (reach_env_cfg.py):
+        #   [0:8]   joint_pos_rel  (8 joints)
+        #   [8:16]  joint_vel_rel  (8 joints)
+        #   [16:23] ee_pose command (xyz + quaternion, 7D)
+        #   [23:31] last_action    (8 joints)
+        obs = np.zeros(31)
+        obs[0:8]  = self.current_joint_positions - self.default_pos
+        obs[8:16] = self.current_joint_velocities
+        obs[16:23] = command
+        obs[23:31] = self._previous_action
         return obs
 
     def forward(self, dt: float, command: np.ndarray) -> np.ndarray:
@@ -92,10 +93,10 @@ class D1ReachPolicy(PolicyController):
             print("\n=== Policy Step ===")
             print(f"{'Command:':<20} {np.round(command, 4)}\n")
             print("--- Observation ---")
-            print(f"{'Δ Joint Positions:':<20} {np.round(obs[:6], 4)}")
-            print(f"{'Joint Velocities:':<20} {np.round(obs[6:12], 4)}")
-            print(f"{'Command:':<20} {np.round(obs[12:19], 4)}")
-            print(f"{'Previous Action:':<20} {np.round(obs[19:25], 4)}\n")
+            print(f"{'Δ Joint Positions:':<20} {np.round(obs[0:8], 4)}")
+            print(f"{'Joint Velocities:':<20} {np.round(obs[8:16], 4)}")
+            print(f"{'Command:':<20} {np.round(obs[16:23], 4)}")
+            print(f"{'Previous Action:':<20} {np.round(obs[23:31], 4)}\n")
             print("--- Action ---")
             print(f"{'Raw Action:':<20} {np.round(self.action, 4)}")
             processed_action = self.default_pos + (self.action * self._action_scale)

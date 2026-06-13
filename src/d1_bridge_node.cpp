@@ -21,14 +21,18 @@ static constexpr const char* DDS_CMD_TOPIC   = "rt/arm_Command";
 static constexpr const char* ROS_STATE_TOPIC = "/d1/joint_states";
 static constexpr const char* ROS_CMD_TOPIC   = "/d1/joint_commands";
 
-static constexpr std::array<const char*, 7> JOINT_NAMES = {
-    "joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6", "joint_7"
+// Names match the IsaacLab training env joint names exactly.
+// Joint1-Joint6 = arm (servo0-servo5), Joint_L/Joint_R = gripper (both driven by servo6).
+static constexpr std::array<const char*, 8> JOINT_NAMES = {
+    "Joint1", "Joint2", "Joint3", "Joint4", "Joint5", "Joint6", "Joint_L", "Joint_R"
 };
 
 class D1BridgeNode : public rclcpp::Node {
 public:
     D1BridgeNode() : Node("d1_bridge_node"), seq_(0), has_prev_(false) {
-        ChannelFactory::Instance()->Init(0);
+        // Domain 0, explicit interface so DDS uses the Unitree subnet (192.168.123.x)
+        // and not the LAN adapter picked by auto-detection
+        ChannelFactory::Instance()->Init(0, "enx0c3796c78061");
 
         joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(ROS_STATE_TOPIC, 10);
 
@@ -50,21 +54,23 @@ private:
     void on_servo_feedback(const void* raw) {
         const auto* pm = static_cast<const unitree_arm::msg::dds_::PubServoInfo_*>(raw);
 
-        // Servo angles arrive in degrees; ROS2 convention is radians
-        std::array<double, 7> pos_deg = {
+        // 7 hardware servo channels → 8 sim joints.
+        // servo0-5: Joint1-Joint6 (arm). servo6: gripper, split symmetrically to Joint_L/Joint_R.
+        std::array<double, 8> pos_deg = {
             pm->servo0_data_(), pm->servo1_data_(), pm->servo2_data_(),
             pm->servo3_data_(), pm->servo4_data_(), pm->servo5_data_(),
-            pm->servo6_data_()
+            pm->servo6_data_(),   // Joint_L
+            pm->servo6_data_()    // Joint_R (same channel)
         };
 
         auto now = get_clock()->now();
-        std::array<double, 7> vel_rads{};
+        std::array<double, 8> vel_rads{};
         {
             std::lock_guard<std::mutex> lock(state_mutex_);
             if (has_prev_) {
                 double dt = (now - prev_time_).seconds();
                 if (dt > 1e-6) {
-                    for (int i = 0; i < 7; ++i)
+                    for (int i = 0; i < 8; ++i)
                         vel_rads[i] = (pos_deg[i] - prev_pos_deg_[i]) * M_PI / 180.0 / dt;
                 }
             }
@@ -75,7 +81,7 @@ private:
 
         auto msg = sensor_msgs::msg::JointState();
         msg.header.stamp = now;
-        for (int i = 0; i < 7; ++i) {
+        for (int i = 0; i < 8; ++i) {
             msg.name.push_back(JOINT_NAMES[i]);
             msg.position.push_back(pos_deg[i] * M_PI / 180.0);
             msg.velocity.push_back(vel_rads[i]);
@@ -84,13 +90,17 @@ private:
     }
 
     void on_joint_command(const sensor_msgs::msg::JointState::SharedPtr msg) {
-        if (msg->position.size() < 7) {
-            RCLCPP_WARN(get_logger(), "Joint command has %zu positions, expected 7 — ignoring.",
+        if (msg->position.size() < 8) {
+            RCLCPP_WARN(get_logger(), "Joint command has %zu positions, expected 8 — ignoring.",
                         msg->position.size());
             return;
         }
 
-        // Policy outputs in radians; D1 JSON command expects degrees
+        // Policy outputs 8 joint positions in radians (Joint1-6, Joint_L, Joint_R).
+        // D1 JSON expects 7 angles in degrees; gripper channel (angle6) = average of Joint_L/R.
+        auto deg = [](double rad) { return rad * 180.0 / M_PI; };
+        double gripper_deg = (deg(msg->position[6]) + deg(msg->position[7])) * 0.5;
+
         char json[512];
         std::snprintf(json, sizeof(json),
             "{\"seq\":%d,\"address\":1,\"funcode\":2,\"data\":"
@@ -98,13 +108,9 @@ private:
             ",\"angle0\":%.3f,\"angle1\":%.3f,\"angle2\":%.3f"
             ",\"angle3\":%.3f,\"angle4\":%.3f,\"angle5\":%.3f,\"angle6\":%.3f}}",
             seq_++,
-            msg->position[0] * 180.0 / M_PI,
-            msg->position[1] * 180.0 / M_PI,
-            msg->position[2] * 180.0 / M_PI,
-            msg->position[3] * 180.0 / M_PI,
-            msg->position[4] * 180.0 / M_PI,
-            msg->position[5] * 180.0 / M_PI,
-            msg->position[6] * 180.0 / M_PI);
+            deg(msg->position[0]), deg(msg->position[1]), deg(msg->position[2]),
+            deg(msg->position[3]), deg(msg->position[4]), deg(msg->position[5]),
+            gripper_deg);
 
         unitree_arm::msg::dds_::ArmString_ dds_msg{};
         dds_msg.data_() = json;
@@ -118,7 +124,7 @@ private:
     std::shared_ptr<ChannelSubscriber<unitree_arm::msg::dds_::PubServoInfo_>> servo_sub_;
 
     std::mutex state_mutex_;
-    std::array<double, 7> prev_pos_deg_{};
+    std::array<double, 8> prev_pos_deg_{};
     rclcpp::Time prev_time_{0, 0, RCL_ROS_TIME};
     bool has_prev_;
     int seq_;
