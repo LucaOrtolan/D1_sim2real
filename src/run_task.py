@@ -123,8 +123,8 @@ class ReachPolicy(Node):
         joint_pos = self.robot.forward(self.step_size, self.target_command)
         
         if joint_pos is not None:
-            if len(joint_pos) != 7:
-                raise Exception(f"Expected 7 joint positions, got {len(joint_pos)}!")
+            if len(joint_pos) != 8:
+                raise Exception(f"Expected 8 joint positions, got {len(joint_pos)}!")
 
             cmd = JointState()
             cmd.header.stamp = self.get_clock().now().to_msg()
@@ -133,6 +133,7 @@ class ReachPolicy(Node):
             self.pub.publish(cmd)
             
         self.i += 1
+        
 
 def main(args=None):
     rclpy.init(args=args)

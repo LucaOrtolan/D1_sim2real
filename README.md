@@ -21,3 +21,8 @@ To go to the neutral position:
   `velocity: [],`
   `effort: []`
 `}" -1`
+
+
+to run the policy:
+
+`python3 src/run_task.py`
