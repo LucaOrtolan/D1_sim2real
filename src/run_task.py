@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import math
 
 import numpy as np
@@ -31,6 +32,7 @@ class ReachPolicy(Node):
         (-3/4 * PI, 3/4 * PI),
         (-PI/2, PI/2),
         (-3/4 * PI, 3/4 * PI),
+        (0, PI)
     ]
     
     # ROS topics — bridge node publishes states here and listens for commands here
@@ -39,13 +41,12 @@ class ReachPolicy(Node):
 
     # Names must match the IsaacLab training env joint names exactly
     JOINT_NAMES = [
-        'Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6',
-        'Joint_L', 'Joint_R',
+                'Joint_0', 'Joint1', 'Joint2', 'Joint3', 'Joint4', 'Joint5', 'Joint6',
     ]
 
     JOINT_NAME_TO_IDX = {
-        'Joint1': 0, 'Joint2': 1, 'Joint3': 2, 'Joint4': 3,
-        'Joint5': 4, 'Joint6': 5, 'Joint_L': 6, 'Joint_R': 7,
+        'Joint0': 0, 'Joint1': 1, 'Joint2': 2, 'Joint3': 3,
+        'Joint4': 4, 'Joint5': 5, 'Joint6': 6
     }
 
     def __init__(self, fail_quietly: bool = False, verbose: bool = False):
@@ -111,24 +112,32 @@ class ReachPolicy(Node):
         """
         Timer callback to compute and publish the next joint trajectory command.
         """
-        # Set a constant target command for the robot (example values)
-        if self.i%3000 < 1000:
-            self.target_command = np.array([0.5, 0.0, 0.2, 0.7071, 0.0, 0.7071, 0.0])
-        elif self.i%3000 < 2000 and self.i%3000 > 1000:
-            self.target_command = np.array([0.4, -0.15, 0.3, 0.7071, 0.0, 0.7071, 0.0])
-        else:
-            self.target_command = np.array([0.6, 0.1, 0.45, 0.7071, 0.0, 0.7071, 0.0])
+        # Target EE poses sampled from training distribution:
+        #   pos_x in [0.25, 0.35], pos_y in [-0.2, 0.2], pos_z in [0.3, 0.4]
+        #   orientation: identity quaternion (roll=pitch=yaw=0, within ±π/6, ±π/4, ±π/9)
+        # if self.i % 3000 < 1000:
+        #     self.target_command = np.array([0.25, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0])
+        # elif self.i % 3000 < 2000:
+        #     self.target_command = np.array([0.30, -0.10, 0.30, 1.0, 0.0, 0.0, 0.0])
+        # else:
+        #     self.target_command = np.array([0.35, 0.10, 0.40, 1.0, 0.0, 0.0, 0.0])
 
-        # self.target_command = np.array([0.3, 0.0, 0.35, 0.0, 0.0, 0.0, 0.0])
+        if self.i % 3000 < 1000:
+            self.target_command = np.array([0.25, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0])
+        elif self.i % 3000 < 2000:
+            self.target_command = np.array([0.30, -0.10, 0.30, 1.0, 0.0, 0.0, 0.0])
+        else:
+            self.target_command = np.array([0.35, 0.10, 0.40, 1.0, 0.0, 0.0, 0.0])
+
+
+        self.target_command = np.array([0.3, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
 
         # Get simulation joint positions from the robot's forward model
         joint_pos = self.robot.forward(self.step_size, self.target_command)
-        
         if joint_pos is not None:
-            if len(joint_pos) != 8:
-                raise Exception(f"Expected 8 joint positions, got {len(joint_pos)}!")
-
             cmd = JointState()
+            from pdb import set_trace
+            set_trace()
             cmd.header.stamp = self.get_clock().now().to_msg()
             cmd.name = self.JOINT_NAMES
             cmd.position = joint_pos.tolist()

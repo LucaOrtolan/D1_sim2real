@@ -64,4 +64,8 @@ install(DIRECTORY launch/
     DESTINATION share/${PROJECT_NAME}/launch
 )
 
+install(DIRECTORY policy/
+    DESTINATION share/${PROJECT_NAME}/policy
+)
+
 ament_package()

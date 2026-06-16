@@ -90,8 +90,8 @@ private:
     }
 
     void on_joint_command(const sensor_msgs::msg::JointState::SharedPtr msg) {
-        if (msg->position.size() < 8) {
-            RCLCPP_WARN(get_logger(), "Joint command has %zu positions, expected 8 — ignoring.",
+        if (msg->position.size() < 7) {
+            RCLCPP_WARN(get_logger(), "Joint command has %zu positions, expected 7 — ignoring.",
                         msg->position.size());
             return;
         }

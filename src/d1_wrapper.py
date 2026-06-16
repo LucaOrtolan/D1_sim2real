@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+from ament_index_python.packages import get_package_share_directory
 
 from policy_controller import PolicyController
 
@@ -16,8 +17,7 @@ class D1ReachPolicy(PolicyController):
             "Joint_L", "Joint_R",
         ]
         # Load the pre-trained policy model and environment configuration
-        repo_root = Path(__file__).resolve().parents[1]
-        model_dir = repo_root / "policy"
+        model_dir = Path(get_package_share_directory('d1_sim2real')) / "policy"
         self.load_policy(
             model_dir / "policy.pt",
             model_dir / "env.yaml",
