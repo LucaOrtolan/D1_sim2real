@@ -14,14 +14,7 @@ To check if it's working, open a new terminal and run:
 
 To go to the neutral position:
 
-`ros2 topic pub /d1/joint_commands sensor_msgs/JointState "{`
-  `header: {stamp: {sec: 0, nanosec: 0}},`
-  `name: [joint_1, joint_2, joint_3, joint_4, joint_5, joint_6, joint_7],`
-  `position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],`
-  `velocity: [],`
-  `effort: []`
-`}" -1`
-
+`sudo /home/master26/Documents/d1_sdk/build/arm_zero_control`
 
 to run the policy:
 

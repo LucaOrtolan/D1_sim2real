@@ -35,7 +35,20 @@ target_link_libraries(d1_bridge_node
     pthread
 )
 
-install(TARGETS d1_bridge_node
+add_executable(arm_zero_control
+    src/arm_zero_control.cpp
+    src/msg/ArmString_.cpp
+)
+
+target_link_libraries(arm_zero_control
+    ${UNITREE_SDK2_DIR}/lib/x86_64/libunitree_sdk2.a
+    ddsc
+    ddscxx
+    rt
+    pthread
+)
+
+install(TARGETS d1_bridge_node arm_zero_control
     DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -45,6 +58,10 @@ install(PROGRAMS
     src/policy_controller.py
     src/config_loader.py
     DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch/
+    DESTINATION share/${PROJECT_NAME}/launch
 )
 
 ament_package()

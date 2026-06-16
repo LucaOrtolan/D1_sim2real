@@ -113,11 +113,13 @@ class ReachPolicy(Node):
         """
         # Set a constant target command for the robot (example values)
         if self.i%3000 < 1000:
-            self.target_command = np.array([0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            self.target_command = np.array([0.5, 0.0, 0.2, 0.7071, 0.0, 0.7071, 0.0])
         elif self.i%3000 < 2000 and self.i%3000 > 1000:
-            self.target_command = np.array([0.4, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            self.target_command = np.array([0.4, -0.15, 0.3, 0.7071, 0.0, 0.7071, 0.0])
         else:
-            self.target_command = np.array([0.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            self.target_command = np.array([0.6, 0.1, 0.45, 0.7071, 0.0, 0.7071, 0.0])
+
+        # self.target_command = np.array([0.3, 0.0, 0.35, 0.0, 0.0, 0.0, 0.0])
 
         # Get simulation joint positions from the robot's forward model
         joint_pos = self.robot.forward(self.step_size, self.target_command)
