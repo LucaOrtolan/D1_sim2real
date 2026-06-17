@@ -111,6 +111,11 @@ template <> constexpr bool TopicTraits<::unitree_arm::msg::dds_::PubServoInfo_>:
   return true;
 }
 
+template <> constexpr bool TopicTraits<::unitree_arm::msg::dds_::PubServoInfo_>::isSelfContained()
+{
+  return false;
+}
+
 } //namespace topic
 } //namespace cyclonedds
 } //namespace eclipse

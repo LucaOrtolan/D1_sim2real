@@ -1,6 +1,8 @@
 #include <array>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
+#include <csignal>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -30,10 +32,6 @@ static constexpr std::array<const char*, 8> JOINT_NAMES = {
 class D1BridgeNode : public rclcpp::Node {
 public:
     D1BridgeNode() : Node("d1_bridge_node"), seq_(0), has_prev_(false) {
-        // Domain 0, explicit interface so DDS uses the Unitree subnet (192.168.123.x)
-        // and not the LAN adapter picked by auto-detection
-        ChannelFactory::Instance()->Init(0, "enx0c3796c78061");
-
         joint_state_pub_ = create_publisher<sensor_msgs::msg::JointState>(ROS_STATE_TOPIC, 10);
 
         joint_cmd_sub_ = create_subscription<sensor_msgs::msg::JointState>(
@@ -52,6 +50,7 @@ public:
 
 private:
     void on_servo_feedback(const void* raw) {
+        if (!active_.load(std::memory_order_relaxed)) return;
         const auto* pm = static_cast<const unitree_arm::msg::dds_::PubServoInfo_*>(raw);
 
         // 7 hardware servo channels → 8 sim joints.
@@ -123,6 +122,7 @@ private:
     std::shared_ptr<ChannelPublisher<unitree_arm::msg::dds_::ArmString_>> arm_pub_;
     std::shared_ptr<ChannelSubscriber<unitree_arm::msg::dds_::PubServoInfo_>> servo_sub_;
 
+    std::atomic<bool> active_{true};
     std::mutex state_mutex_;
     std::array<double, 8> prev_pos_deg_{};
     rclcpp::Time prev_time_{0, 0, RCL_ROS_TIME};
@@ -131,8 +131,16 @@ private:
 };
 
 int main(int argc, char* argv[]) {
+    // Must initialize Unitree DDS before rclcpp::init() — both use CycloneDDS and
+    // ChannelFactory::Init() is not idempotent when called after rclcpp already owns the domain.
+    ChannelFactory::Instance()->Init(0, "enx0c3796c78061");
     rclcpp::init(argc, argv);
+    // rclcpp's default SIGINT/SIGTERM handler calls rclcpp::shutdown(), which triggers
+    // CycloneDDS teardown that conflicts with the Unitree SDK's participant and corrupts
+    // the heap. Override it AFTER rclcpp::init() to just _exit() instead.
+    signal(SIGINT,  [](int) { _exit(0); });
+    signal(SIGTERM, [](int) { _exit(0); });
+
     rclcpp::spin(std::make_shared<D1BridgeNode>());
-    rclcpp::shutdown();
-    return 0;
+    _exit(0);
 }

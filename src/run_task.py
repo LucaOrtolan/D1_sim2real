@@ -129,9 +129,6 @@ class ReachPolicy(Node):
         else:
             self.target_command = np.array([0.35, 0.10, 0.40, 1.0, 0.0, 0.0, 0.0])
 
-
-        self.target_command = np.array([0.3, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-
         # Get simulation joint positions from the robot's forward model
         joint_pos = self.robot.forward(self.step_size, self.target_command)
         if joint_pos is not None:
