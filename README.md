@@ -23,5 +23,3 @@ to run the policy:
 To teleoperate each joint:
 
 `ros2 topic pub /d1/joint_commands sensor_msgs/msg/JointState "{ header: {stamp: {sec: 0, nanosec: 0}}, name: [Joint_0, Joint_1, Joint_2, Joint_3, Joint_4, Joint_5, Joint_6], position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], velocity: [], effort: [] }" -1`
-
-NB: Joint 3 needs to be recalibrated (0 angle is at -0.1)

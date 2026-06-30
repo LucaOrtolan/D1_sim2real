@@ -63,6 +63,7 @@ class ReachPolicy(Node):
         # self.pub_freq = 1.0  # Hz
         self.current_pos = None  # Dictionary of current joint positions
         self.target_pos = None   # List of target joint positions
+        self.last_command = None
 
         # Subscriber for joint state feedback from the D1 bridge
         self.create_subscription(JointState, self.STATE_TOPIC, self.sub_callback, 10)
@@ -122,19 +123,19 @@ class ReachPolicy(Node):
         # else:
         #     self.target_command = np.array([0.35, 0.10, 0.40, 1.0, 0.0, 0.0, 0.0])
 
-        if self.i % 3000 < 1000:
-            self.target_command = np.array([0.25, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0])
-        elif self.i % 3000 < 2000:
-            self.target_command = np.array([0.30, -0.10, 0.30, 1.0, 0.0, 0.0, 0.0])
-        else:
-            self.target_command = np.array([0.35, 0.10, 0.40, 1.0, 0.0, 0.0, 0.0])
+        # if self.i % 3000 < 1000:
+        #     self.target_command = np.array([0.25, 0.0, 0.35, 1.0, 0.0, 0.0, 0.0])
+        # elif self.i % 3000 < 2000:
+        #     self.target_command = np.array([0.25, 0.0, 0.30, 1.0, 0.0, 0.0, 0.0])
+        # else:
+        #     self.target_command = np.array([0.25, 0.0, 0.40, 1.0, 0.0, 0.0, 0.0])
+
+        self.target_command = np.array([0.28238, -0.00048, 0.51445, 1.0, 0.6, 0.0, 0.0])
 
         # Get simulation joint positions from the robot's forward model
         joint_pos = self.robot.forward(self.step_size, self.target_command)
         if joint_pos is not None:
             cmd = JointState()
-            from pdb import set_trace
-            set_trace()
             cmd.header.stamp = self.get_clock().now().to_msg()
             cmd.name = self.JOINT_NAMES
             cmd.position = joint_pos.tolist()

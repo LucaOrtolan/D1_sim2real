@@ -21,7 +21,6 @@ include_directories(
 )
 
 add_executable(d1_bridge_node
-    src/d1_bridge_node.cpp
     src/msg/ArmString_.cpp
     src/msg/PubServoInfo_.cpp
 )
@@ -42,7 +41,6 @@ set_target_properties(d1_bridge_node PROPERTIES
 target_link_options(d1_bridge_node PRIVATE -Wl,--disable-new-dtags)
 
 add_executable(arm_zero_control
-    src/arm_zero_control.cpp
     src/msg/ArmString_.cpp
 )
 
@@ -68,6 +66,10 @@ install(PROGRAMS
     src/d1_wrapper.py
     src/policy_controller.py
     src/config_loader.py
+    src/zero_position.py
+    src/rest_position.py
+    src/d1_bridge_node.py
+    src/move_joint.py
     DESTINATION lib/${PROJECT_NAME}
 )
 
